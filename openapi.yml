@@ -2,7 +2,7 @@ openapi: 3.0.2
 info:
   title: Transaction-V3 API Definition
   description: Transaction-V3 API for Merchant Portal
-  version: V3.70.1
+  version: V3.72.0
 tags:
   - name: transaction
     description: endpoints used to process a transaction
@@ -90,6 +90,36 @@ paths:
           $ref: '#/components/responses/NotFoundError'
         '409':
           $ref: '#/components/responses/ConflictError'
+  /api/merchant/v3/transaction/{transactionId}/refund:
+    post:
+      summary: Report a refund for a transaction according to its unique functional identifier
+      description: Reports a refund for the specified merchant's transaction. Currently there can only be one active refund.
+      tags:
+        - transaction
+      security:
+        - basicAuth: [ ]
+      parameters:
+        - $ref: '#/components/parameters/transactionId'
+      requestBody:
+        $ref: '#/components/requestBodies/RefundRequest'
+      responses:
+        '202':
+          description: accepted for processing
+          headers:
+            Location:
+              description: url to retrieve a transaction
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/ConstraintViolationError'
+        '401':
+          $ref: '#/components/responses/AuthenticationError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
 components:
   securitySchemes:
     basicAuth:
@@ -147,6 +177,17 @@ components:
           description: Sum of all the refund amounts in €
           type: number
           example: 488.37
+    RefundRequest:
+      type: object
+      properties:
+        value:
+          type: number
+          format: double
+          minimum: 0
+          exclusiveMinimum: true
+          example: 200.00
+      required:
+        - value
     Booking:
       type: object
       properties:
@@ -173,7 +214,7 @@ components:
             - PROCESSING
         message:
           type: string
-          description: error message whenever a booking (e.g REFUND/CAPTURE) related to a transaction fails
+          description: error message whenever a booking (e.g REF-UND/CAPTURE) related to a transaction fails
     Customer:
       type: object
       properties:
@@ -320,6 +361,13 @@ components:
       schema:
         type: number
         example: 9999.99
+  requestBodies:
+    RefundRequest:
+      description: Refund Request Object
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RefundRequest'
   responses:
     default:
       description: Internal server error or error from third party services
