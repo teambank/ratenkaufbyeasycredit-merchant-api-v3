@@ -2,7 +2,7 @@ openapi: 3.0.2
 info:
   title: Transaction-V3 API Definition
   description: Transaction-V3 API for Merchant Portal
-  version: V3.72.0
+  version: V3.73.0
 tags:
   - name: transaction
     description: endpoints used to process a transaction
@@ -27,6 +27,8 @@ paths:
         - $ref: '#/components/parameters/firstname'
         - $ref: '#/components/parameters/lastname'
         - $ref: '#/components/parameters/orderId'
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/page'
         - $ref: '#/components/parameters/status'
         - $ref: '#/components/parameters/minOrderValue'
         - $ref: '#/components/parameters/maxOrderValue'
@@ -127,6 +129,24 @@ components:
       type: http
       scheme: basic
   schemas:
+    PaginationInfo:
+      type: object
+      properties:
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        count:
+          type: integer
+    TransactionListInfo:
+      type: object
+      properties:
+        TransactionList:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransactionResponse'
+        PagingDetails:
+          $ref: '#/components/schemas/PaginationInfo'
     TransactionResponse:
       type: object
       properties:
@@ -336,6 +356,19 @@ components:
       example: ABCDE
       schema:
         type: string
+    pageSize:
+      name: pageSize
+      in: query
+      example: 50
+      schema:
+        type: integer
+        default: 100
+    page:
+      name: page
+      in: query
+      example: 0
+      schema:
+        type: integer
     status:
       name: status
       in: query
@@ -386,9 +419,7 @@ components:
       content:
         application/hal+json:
           schema:
-            type: array
-            items:
-              $ref: '#/components/schemas/TransactionResponse'
+            $ref: '#/components/schemas/TransactionListInfo'
     ConstraintViolationError:
       description: The request is invalid and has one or more constraint violations.
       content:
