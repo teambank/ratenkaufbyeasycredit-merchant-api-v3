@@ -1,299 +1,1395 @@
 openapi: 3.0.2
 info:
-  title: Transaction-V3 API Definition
-  description: Transaction-V3 API for Merchant Portal
-  version: V3.73.0
+  description: "Selbstverwaltungs-Portal und Api von Haendlern im Ratenkauf"
+  version: "2.74.2"
+  title: "Haendlerportal"
 tags:
-  - name: transaction
-    description: endpoints used to process a transaction
+  - name: "Transaktionen"
+    description: "Transaktionsverwaltung im Haendlerportal"
+  - name: "Shopadministration"
+    description: "Shopadministration im Haendlerportal"
+  - name: "Shops"
+    description: "Webshop Data from B2B-Guide"
+  - name: "User"
+    description: "User from B2B-Guide"
+  - name: "apitoken"
+    description: "Endpoints for operations regarding an api token"
+  - name: "signature"
+    description: "Endpoints for operations regarding the signature"
+  - name: "Firma"
+    description: "Haendler/Firma from B2B-Guide"
 paths:
-  /api/merchant/v3/transaction:
+  /portal/api/v1/shops:
     get:
-      summary: Find transactions of a merchant according to some search parameters.
-      description: '''
-        Find transactions of a merchant according to the following search parameters:
-          firstname, lastname, orderId,
-          status (REPORT_CAPTURE, REPORT_CAPTURE_EXPIRING, IN_BILLING, BILLED, EXPIRED),
-          minOrderValue, maxOrderValue.
-        The search filter combines the search tags as follows:
-          call /transaction?firstname=Ralf&minOrderValue=5000
-          -> find transactions with customers firstname Ralf and a minimum order value of 5000€
-      '''
+      summary: Alle Shops zu dem eingeloggten Nutzer
+      description: Lade alle Shops, die zu diesem Haendler gefunden werden
       tags:
-        - transaction
-      security:
-        - basicAuth: [ ]
-      parameters:
-        - $ref: '#/components/parameters/firstname'
-        - $ref: '#/components/parameters/lastname'
-        - $ref: '#/components/parameters/orderId'
-        - $ref: '#/components/parameters/pageSize'
-        - $ref: '#/components/parameters/page'
-        - $ref: '#/components/parameters/status'
-        - $ref: '#/components/parameters/minOrderValue'
-        - $ref: '#/components/parameters/maxOrderValue'
+        - Shops
       responses:
         '200':
-          $ref: '#/components/responses/TransactionListResponse'
+          $ref: '#/components/responses/ShopsResponse'
         '400':
           $ref: '#/components/responses/ConstraintViolationError'
-        '401':
-          $ref: '#/components/responses/AuthenticationError'
-        '403':
-          $ref: '#/components/responses/ForbiddenError'
-        '404':
-          $ref: '#/components/responses/NotFoundError'
-  /api/merchant/v3/transaction/{transactionId}:
-    get:
-      summary: Retrieve a transaction of a merchant according to a unique functional identifier
-      description: A single transaction is loaded according to its unique functional identifier.
-      tags:
-        - transaction
-      security:
-        - basicAuth: [ ]
-      parameters:
-        - $ref: '#/components/parameters/transactionId'
-      responses:
-        '200':
-          $ref: '#/components/responses/TransactionResponse'
-        '400':
-          $ref: '#/components/responses/ConstraintViolationError'
-        '401':
-          $ref: '#/components/responses/AuthenticationError'
-        '403':
-          $ref: '#/components/responses/ForbiddenError'
-        '404':
-          $ref: '#/components/responses/NotFoundError'
-  /api/merchant/v3/transaction/{transactionId}/capture:
+  /portal/api/v1/shop:
     post:
-      summary: Report a capture for a transaction according to its unique functional identifier
-      description: Reports a capture for the specified merchant's transaction. Only one capture can be reported per transaction.
+      summary: Shopinfo zu dem eingeloggten Nutzer aendern
+      description: Aendere Shopdaten im B2B-Guide
       tags:
-        - transaction
-      security:
-        - basicAuth: [ ]
-      parameters:
-        - $ref: '#/components/parameters/transactionId'
-      responses:
-        '202':
-          description: accepted for processing
-          headers:
-            Location:
-              description: url to retrieve a transaction
-              schema:
-                type: string
-        '400':
-          $ref: '#/components/responses/ConstraintViolationError'
-        '401':
-          $ref: '#/components/responses/AuthenticationError'
-        '403':
-          $ref: '#/components/responses/ForbiddenError'
-        '404':
-          $ref: '#/components/responses/NotFoundError'
-        '409':
-          $ref: '#/components/responses/ConflictError'
-  /api/merchant/v3/transaction/{transactionId}/refund:
-    post:
-      summary: Report a refund for a transaction according to its unique functional identifier
-      description: Reports a refund for the specified merchant's transaction. Currently there can only be one active refund.
-      tags:
-        - transaction
-      security:
-        - basicAuth: [ ]
-      parameters:
-        - $ref: '#/components/parameters/transactionId'
+        - Shops
       requestBody:
-        $ref: '#/components/requestBodies/RefundRequest'
+        $ref: '#/components/requestBodies/ShopRequest'
       responses:
-        '202':
-          description: accepted for processing
-          headers:
-            Location:
-              description: url to retrieve a transaction
-              schema:
-                type: string
+        '200':
+          $ref: '#/components/responses/ShopResponse'
+        '400':
+          $ref: '#/components/responses/ConstraintViolationError'
+  /portal/api/v1/shop/logo:
+    post:
+      summary: Shop-Logo hochladen
+      description: Die erlaubten Dateitypen sind jpeg, png, PDF, PDF/A. maximale groesse ist 1 MB
+      tags:
+        - Shops
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                logo:
+                  type: string
+                  format: binary
+                webshopkennung:
+                  type: string
+                  example: 1.de.4145.1
+              required:
+                - logo
+                - webshopkennung
+      responses:
+        '200':
+          $ref: '#/components/responses/WebshopLogoResponse'
         '400':
           $ref: '#/components/responses/ConstraintViolationError'
         '401':
-          $ref: '#/components/responses/AuthenticationError'
-        '403':
-          $ref: '#/components/responses/ForbiddenError'
+          $ref: '#/components/responses/ApiError'
+  /portal/api/v1/shop/logo/{logoUuid}:
+    delete:
+      summary: Shop-Logo loeschen
+      description: loescht das Logo mit dem angegebenen uuid
+      tags:
+        - Shops
+      parameters:
+        - $ref: "#/components/parameters/logoUuid"
+      responses:
+        '200':
+          description: Das Logo wurde erforlgreich geloescht
+        '400':
+          $ref: '#/components/responses/ConstraintViolationError'
+        '401':
+          $ref: '#/components/responses/ApiError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+  /portal/api/v1/firma:
+    get:
+      summary: Firmendaten zum eingeloggten Nutzer
+      description: Lade Firmendaten des Nutzers aus B2B-Guide-Informationen
+      tags:
+        - Firma
+      responses:
+        '200':
+          $ref: '#/components/responses/FirmaResponse'
+        '400':
+          $ref: '#/components/responses/ConstraintViolationError'
+  /portal/api/v1/firma/search/{vertragspartnerkennungStartsWith}:
+    get:
+      summary: Haendlersuche fuer Zentrale
+      description: Liste an Haendlern mit Vertragspartnerkennung und Name als Suche nach Partnerkennung fuer Zentralnutzer
+      tags:
+        - Firma
+      parameters:
+        - $ref: '#/components/parameters/vertragspartnerkennungStartsWith'
+      responses:
+        '200':
+          $ref: '#/components/responses/HaendlerSearchResponse'
+        '400':
+          $ref: '#/components/responses/ConstraintViolationError'
+  /portal/api/v1/user:
+    get:
+      summary: Personeninfo zu dem eingeloggten Nutzer
+      description: Lade Stammdaten des Nutzers aus B2B-Guide-Informationen
+      tags:
+        - User
+      responses:
+        '200':
+          $ref: '#/components/responses/UserResponse'
+        '400':
+          $ref: '#/components/responses/ConstraintViolationError'
+    post:
+      summary: Personeninfo zu dem eingeloggten Nutzer aendern
+      description: Aendere Personendaten und Visitenkarten im B2B-Guide
+      tags:
+        - User
+      requestBody:
+        $ref: '#/components/requestBodies/UserRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/UserResponse'
+        '400':
+          $ref: '#/components/responses/ConstraintViolationError'
+  /portal/api/v1/webshops/{webshopkennung}/testmodus:
+    get:
+      summary: get Test Mode information
+      description: '''
+          Get test Mode information about the Shop
+          '''
+      tags:
+        - Shopadministration
+      parameters:
+        - $ref: '#/components/parameters/webshopkennung'
+      responses:
+        200 :
+          $ref: '#/components/responses/TestmodusResponse'
+        401 :
+          $ref: '#/components/responses/ApiError'
+        404 :
+          $ref: '#/components/responses/NotFoundError'
+  /portal/api/v1/webshops/{webshopkennung}/callbackurl:
+    post:
+      summary: Edit the callback Url for a webshop
+      description: '''
+          Edit the current callback Url from the shop. We notify the partner about changes through this URL.
+          '''
+      tags:
+        - Shopadministration
+      requestBody:
+        $ref: '#/components/requestBodies/CallbackUrlRequest'
+      parameters:
+        - $ref: '#/components/parameters/webshopkennung'
+      responses:
+        '200':
+          description: The callback Url was successfully changed
+        '401':
+          $ref: '#/components/responses/ApiError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+    get:
+      summary: Get the callback Url a specific webshop
+      description: '''
+              Returns the callback Url for a specific webshop.
+              '''
+      tags:
+        - Shopadministration
+      parameters:
+        - $ref: '#/components/parameters/webshopkennung'
+      responses:
+        '200':
+          $ref: '#/components/responses/CallbackUrlResponse'
+        '401':
+          $ref: '#/components/responses/ApiError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+  /portal/api/v1/webshops/{webshopkennung}/apitoken:
+    post:
+      summary: Generate an api token for a specific webshop
+      description: '''
+        Generates an authentication token for a specific webshop. The token is returned in the response.
+        '''
+      tags:
+        - apitoken
+      requestBody:
+        $ref: '#/components/requestBodies/NewApiTokenRequest'
+      parameters:
+        - $ref: '#/components/parameters/webshopkennung'
+      responses:
+        '200':
+          $ref: '#/components/responses/NewApiTokenResponse'
+        '401':
+          $ref: '#/components/responses/ApiError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+    get:
+      summary: Get all api tokens for a specific webshop
+      description: '''
+            Fetches all api tokens for a specific webshop.
+            '''
+      tags:
+        - apitoken
+      parameters:
+        - $ref: '#/components/parameters/webshopkennung'
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiTokenResponse'
+        '401':
+          $ref: '#/components/responses/ApiError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+  /portal/api/v1/webshops/{webshopkennung}/apitoken/{id}:
+    delete:
+      summary: Delete specific api token
+      description: '''
+        Deletes a specific token.
+        '''
+      tags:
+        - apitoken
+      parameters:
+        - $ref: '#/components/parameters/webshopkennung'
+        - $ref: '#/components/parameters/tokenid'
+      responses:
+        '200':
+          description: Token was deleted successfully
+        '401':
+          $ref: '#/components/responses/ApiError'
         '404':
           $ref: '#/components/responses/NotFoundError'
         '409':
-          $ref: '#/components/responses/ConflictError'
+          $ref: '#/components/responses/ConstraintViolationError'
+  /portal/api/v1/webshops/{webshopkennung}/signature:
+    post:
+      summary: Generate a signature for a specific webshop
+      description: '''
+          Generates a signature for a specific webshop. The signature is returned in the response.
+          '''
+      tags:
+        - signature
+      requestBody:
+        $ref: '#/components/requestBodies/NewApiSignatureRequest'
+      parameters:
+        - $ref: '#/components/parameters/webshopkennung'
+      responses:
+        '200':
+          $ref: '#/components/responses/NewApiSignatureResponse'
+        '401':
+          $ref: '#/components/responses/ApiError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+    get:
+      summary: Get all api signatures for a specific webshop
+      description: '''
+              Fetches all api signatures for a specific webshop.
+              '''
+      tags:
+        - signature
+      parameters:
+        - $ref: '#/components/parameters/webshopkennung'
+      responses:
+        '200':
+          $ref: '#/components/responses/ApiSignatureResponse'
+        '401':
+          $ref: '#/components/responses/ApiError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+  /portal/api/v1/webshops/{webshopkennung}/signature/{id}:
+    delete:
+      summary: Delete specific api signature
+      description: '''
+        Deletes a specific signature.
+        '''
+      tags:
+        - signature
+      parameters:
+        - $ref: '#/components/parameters/webshopkennung'
+        - $ref: '#/components/parameters/signatureid'
+      responses:
+        '200':
+          description: Signature was deleted successfully
+        '401':
+          $ref: '#/components/responses/ApiError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConstraintViolationError'
+  /portal/api/v1/webshops/{webshopkennung}/bodysignature:
+    post:
+      summary: Activates/Deactivates body-signature for a specific webshop
+      description: '''
+             Activates/Deactivates body-signature for a specific webshop.
+             '''
+      tags:
+        - signature
+      parameters:
+        - $ref: '#/components/parameters/webshopkennung'
+      requestBody:
+        $ref: '#/components/requestBodies/BodySignatureActiveRequest'
+      responses:
+        '200':
+          description: Body Signature was successfully activated/deactivated
+        '401':
+          $ref: '#/components/responses/ApiError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConstraintViolationError'
+    get:
+      summary: Gets the current body-signature status for a specific webshop
+      description: '''
+            Gets the current body-signature status for a specific webshop.
+            '''
+      tags:
+        - signature
+      parameters:
+        - $ref: '#/components/parameters/webshopkennung'
+      responses:
+        '200':
+          $ref: '#/components/responses/BodySignatureActiveResponse'
+        '401':
+          $ref: '#/components/responses/ApiError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+  /portal/api/v1/transaktionen:
+    post:
+      summary: Alle Transaktionen with query from body
+      description: Lade alle Transaktionen, die zu diesem Haendler gefunden werden
+      tags:
+        - Transaktionen
+      requestBody:
+        $ref: '#/components/requestBodies/TransaktionenQueryRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/TransaktionenResponse'
+        '400':
+          $ref: '#/components/responses/ConstraintViolationError'
+  /portal/api/v1/transaktionen/{vorgangskennung}/lieferungen:
+    post:
+      summary: Lieferung für eine Transaktion melden.
+      description: |
+        Meldet die Lieferung für die angegebene Transaktion des Händlers. Pro Transaktion kann nur eine Lieferung gemeldet werden.
+      tags:
+        - Transaktionen
+      parameters:
+        - $ref: '#/components/parameters/vorgangskennung'
+      requestBody:
+        $ref: '#/components/requestBodies/LieferungMeldenRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/TransaktionResponse'
+        '400':
+          $ref: '#/components/responses/ConstraintViolationError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+  /portal/api/v1/transaktionen/{vorgangskennung}/rueckabwicklungen:
+    post:
+      summary: Rückabwicklung für einen Vorgang melden
+      description: |
+        Es wird eine Rückabwicklung für eine Transaktion gemeldet. Pro Transaktion können mehrere Rückabwicklungen in Summe bis zum ursprünglichen Bestellwert gemeldet werden.
+      tags:
+        - Transaktionen
+      parameters:
+        - $ref: '#/components/parameters/vorgangskennung'
+      requestBody:
+        $ref: '#/components/requestBodies/RueckabwicklungMeldenRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/TransaktionResponse'
+        '400':
+          $ref: '#/components/responses/ConstraintViolationError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+  /portal/api/v1/transaktionen/{vorgangskennung}/bestaetigung:
+    post:
+      summary: Bestätigung für einen Vorgang melden
+      description: |
+        Es wird eine Bestätigung für eine Transaktion gemeldet.
+      tags:
+        - Transaktionen
+      parameters:
+        - $ref: '#/components/parameters/vorgangskennung'
+      requestBody:
+        $ref: '#/components/requestBodies/BestaetigungRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/TransaktionResponse'
+        '400':
+          $ref: '#/components/responses/ConstraintViolationError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+  /portal/api/v1/transaktionen/{vorgangskennung}/stornierung:
+    post:
+      summary: Stornierung für eine Transaktion melden
+      description: |
+        Meldet die Stornierung der angegebenen Transaktion
+      tags:
+        - Transaktionen
+      parameters:
+        - $ref: '#/components/parameters/vorgangskennung'
+      requestBody:
+        $ref: '#/components/requestBodies/StornierungRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/TransaktionResponse'
+        '400':
+          $ref: '#/components/responses/ConstraintViolationError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+  /portal/api/v1/transaktionen/export:
+    post:
+      summary: Exportiert die gefilterten Vorgänge
+      description: |
+        Exportiert die gefilterten Vorgänge
+      tags:
+        - Transaktionen
+      requestBody:
+        $ref: '#/components/requestBodies/ExportRequest'
+      responses:
+        '200':
+          description: Das erstellte Dokument.
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        '400':
+          $ref: '#/components/responses/ConstraintViolationError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '429':
+          $ref: "#/components/responses/TooManyRequestsError"
+  /portal/api/v1/transaktionen/report:
+    post:
+      summary: Erstellt einen Report
+      description: |
+        Erstellt einen Report, z.B. Tagesreport, ConversionReport
+      tags:
+        - Transaktionen
+      requestBody:
+        $ref: '#/components/requestBodies/ReportRequest'
+      responses:
+        '200':
+          description: Das erstellte Dokument.
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        '400':
+          $ref: '#/components/responses/ConstraintViolationError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '429':
+          $ref: "#/components/responses/TooManyRequestsError"
+  /portal/api/v1/shopadministration:
+    get:
+      summary: Lade alle Webshops eines Händlers inklusive Passwortinformationen und Händlerpasswortinformation
+      description: |
+        Es werden alle Webshops eines Händlers inkl. Passwortinfo gemäß des Schulungsmodus geladen
+      tags:
+        - Shopadministration
+      parameters:
+        - $ref: '#/components/parameters/schulungsmodus'
+      responses:
+        '200':
+          $ref: '#/components/responses/ShopadminResponse'
+        '400':
+          $ref: '#/components/responses/ConstraintViolationError'
+  /portal/api/v1/shopadministration/haendler:
+    post:
+      summary: Speichert das neue Passwort für einen Händler
+      description: |
+        Speichert das neue Passwort für einen Händler
+      tags:
+        - Shopadministration
+      requestBody:
+        $ref: '#/components/requestBodies/KennwortRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/HaendlerkennwortResponse'
+        '400':
+          $ref: '#/components/responses/ConstraintViolationError'
+  /portal/api/v1/shopadministration/shop/{webshopkennung}:
+    post:
+      summary: Speichert das neue Passwort für einen Shop
+      description: |
+        Speichert das neue Passwort für einen Shop
+      tags:
+        - Shopadministration
+      parameters:
+        - $ref: '#/components/parameters/webshopkennung'
+      requestBody:
+        $ref: '#/components/requestBodies/KennwortRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/ShopkennwortResponse'
+        '400':
+          $ref: '#/components/responses/ConstraintViolationError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+  /portal/api/v1/shopadministration/shop/{webshopkennung}/testmodus:
+    post:
+      summary: Speichert für einen Shop den Testmodus
+      description: |
+        Speichert für einen Shop den Testmodus
+      tags:
+        - Shopadministration
+      parameters:
+        - $ref: '#/components/parameters/webshopkennung'
+      requestBody:
+        $ref: '#/components/requestBodies/TestmodusRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/TestmodusResponse'
+        '400':
+          $ref: '#/components/responses/ConstraintViolationError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+  /portal/api/v1/validierung/adressdaten:
+    post:
+      summary: Validieren von Adressdaten
+      description: Validieren von Adressdaten
+      tags:
+        - Validierung
+      requestBody:
+        $ref: "#/components/requestBodies/ValidiereAdressdatenRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/ValidiereAdressdatenResponse"
+        "400":
+          description: Adresse ist nicht valide
+          $ref: "#/components/responses/ConstraintViolationError"
+  /portal/api/v1/validierung/telefondaten:
+    post:
+      summary: Validieren von Telefondaten
+      description: Validieren von Telefondaten
+      tags:
+        - Validierung
+      requestBody:
+        $ref: "#/components/requestBodies/ValidiereTelefondatenRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/ValidiereTelefondatenResponse"
+        "400":
+          description: Telefondaten sind nicht valide
+          $ref: "#/components/responses/ConstraintViolationError"
+  /portal/api/v1/validierung/kontodaten:
+    post:
+      summary: Validieren von Kontodaten
+      description: Validieren von Kontodaten
+      tags:
+        - Validierung
+      requestBody:
+        $ref: "#/components/requestBodies/ValidiereKontodatenRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/ValidiereKontodatenResponse"
+        "400":
+          description: Kontodaten sind nicht valide
+          $ref: "#/components/responses/ConstraintViolationError"
 components:
-  securitySchemes:
-    basicAuth:
-      description: username/password -> webshop id/ratenkauf token
-      type: http
-      scheme: basic
   schemas:
-    PaginationInfo:
+    ShopsResponse:
       type: object
       properties:
-        page:
-          type: integer
-        pageSize:
-          type: integer
-        count:
-          type: integer
-    TransactionListInfo:
-      type: object
-      properties:
-        TransactionList:
+        shops:
           type: array
           items:
-            $ref: '#/components/schemas/TransactionResponse'
-        PagingDetails:
-          $ref: '#/components/schemas/PaginationInfo'
-    TransactionResponse:
-      type: object
-      properties:
-        transactionId:
-          description: Unique functional transaction identifier (consists of 6 characters)
-          type: string
-          example: EWZEN7
-        status:
-          description: Status structure = <Merchant-Transaction-Status>_<Booking-Status> -> Merchant-Transaction-Status are REPORT_CAPTURE (LIEFERUNG_MELDEN), REPORT_CAPTURE_EXPIRING (LIEFERUNG_MELDEN_AUSLAUFEND), IN_BILLING (IN_ABRECHNUNG), BILLED (ABGERECHNET), EXPIRED (ABGELAUFEN). Applicable Booking-Status for this scenario are FAILED, PENDING
-          type: string
-          example: EXPIRED
-          enum:
-            - REPORT_CAPTURE
-            - REPORT_CAPTURE_EXPIRING
-            - IN_BILLING
-            - BILLED
-            - EXPIRED
-            - REPORT_CAPTURE_FAILED
-            - REPORT_CAPTURE_EXPIRING_FAILED
-            - IN_BILLING_FAILED
-            - BILLED_FAILED
-            - EXPIRED_FAILED
-            - REPORT_CAPTURE_PENDING
-            - REPORT_CAPTURE_EXPIRING_PENDING
-            - IN_BILLING_PENDING
-            - BILLED_PENDING
-            - EXPIRED_PENDING
-        message:
-          type: string
-          description: error message whenever a booking (e.g REFUND/CAPTURE) related to a transaction fails
-        bookings:
-          type: array
-          items:
-            $ref: '#/components/schemas/Booking'
-        customer:
-          $ref: '#/components/schemas/Customer'
-        creditAccountNumber:
-          description: (= kreditKontonummer)
-          type: string
-          example: 5386968600
-        orderDetails:
-          $ref: '#/components/schemas/OrderDetails'
-        refundDetails:
-          type: array
-          items:
-            $ref: '#/components/schemas/Refund'
-        refundsTotalValue:
-          description: Sum of all the refund amounts in €
-          type: number
-          example: 488.37
-    RefundRequest:
-      type: object
-      properties:
-        value:
-          type: number
-          format: double
-          minimum: 0
-          exclusiveMinimum: true
-          example: 200.00
-      required:
-        - value
-    Booking:
+            $ref: '#/components/schemas/Webshop'
+    User:
       type: object
       properties:
         uuid:
           type: string
-        created:
+        anrede:
           type: string
-          format: date-time
-          example: '2021-03-04T14:41:09.002Z'
-        type:
-          type: string
-          example: REFUND
           enum:
-            - REFUND
-            - CAPTURE
-            - NOTIFY
-        status:
+            - HERR
+            - FRAU
+        titel:
           type: string
-          example: DONE
           enum:
-            - DONE
-            - FAILED
-            - PENDING
-            - PROCESSING
-        message:
+            - DR
+            - DRDR
+            - PROF
+            - PROFDR
+            - MAG
+            - PROK
+            - ING
+            - DIPL_ING
+        vorname:
           type: string
-          description: error message whenever a booking (e.g REF-UND/CAPTURE) related to a transaction fails
-    Customer:
+          example: Ralf
+        nachname:
+          type: string
+          example: Ratenkauf
+        geburtsdatum:
+          type: string
+          format: date
+          example: '1977-12-15'
+        haendlerfunktionen:
+          type: array
+          items:
+            type: string
+            enum:
+              - ANSPRECHPARTNER_KUNDEN_SERVICE_CENTER
+              - ANSPRECHPARTNER_ONBOARDING
+              - ANSPRECHPARTNER_VERTRIEB
+              - E_COMMERCE_MANAGER
+              - EMPFAENGER_RATENKAUFPROVISIONSABRECHNUNG
+              - EXTERNER_DIENSTLEISTER
+              - FILIALLEITER
+              - GESCHAEFTSFUEHRER
+              - LEITER_MARKETING
+              - LEITER_IT
+              - MITARBEITER_BUCHHALTUNG
+              - MITARBEITER_FILIALE
+              - MITARBEITER_FRAUD_BETRUG
+              - MITARBEITER_IT
+              - MITARBEITER_MARKETING
+              - MITARBEITER_SERVICE
+              - MITARBEITER_WEBSHOP
+              - PROKURIST
+              - PROJEKTLEITER
+              - TECHNISCHER_ANSPRECHPARTNER
+              - VERTRETUNGSBERECHTIGTER
+              - WEBSHOPLEITER
+              - WIRTSCHAFTLICH_BERECHTIGTER
+              - EMPFAENGER_EMAIL_DIREKTVERTRIEB
+        adresse:
+          $ref: '#/components/schemas/Adresse'
+        kontakt:
+          $ref: '#/components/schemas/Kontaktdaten'
+    TransaktionenResponse:
       type: object
       properties:
-        firstName:
-          type: string
-          example: Max
-        lastName:
-          type: string
-          example: Müller
-        customerNumber:
-          type: string
-          example: 2810941815
-    OrderDetails:
+        transaktionen:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransaktionResponse'
+        limit:
+          type: integer
+          example: 100
+          minimum: 1
+          maximum: 1000
+        ecaCount:
+          type: integer
+          example: 75
+        rkCount:
+          type: integer
+          example: 25
+        count:
+          type: integer
+          example: 100000
+      required:
+        - transaktionen
+        - limit
+        - ecaCount
+        - rkCount
+        - count
+    TransaktionResponse:
       type: object
       properties:
-        orderDate:
-          description: Order date ( = bestelldatum)
+        vorgangskennung:
+          type: string
+          example: TKD1SW
+        shopVorgangskennung:
+          type: string
+          example: HTKOPP1545
+        kunde:
+          $ref: '#/components/schemas/Kunde'
+        kreditKontonummer:
+          type: string
+          example: 5386968600
+        bestelldatum:
           type: string
           format: date
           example: '2017-02-06'
-        currentOrderValue:
-          description: Amount in € ( = aktuellerBestellwert in €)
+        aktuellerBestellwert:
           type: number
           example: 356.62
-        originalOrderValue:
-          description: Amount in € ( = urspruenglicherBestellwert in €)
+        urspruenglicherBestellwert:
           type: number
           example: 356.62
-    Refund:
+        statusFuerHaendler:
+          $ref: '#/components/schemas/TransaktionstatusFuerHaendler'
+        shopkennung:
+          type: string
+          example: '1.de.4145.1'
+        vertriebsweg:
+          type: string
+          enum:
+            - INTERNET
+            - FILIALE
+            - EMAIL
+        lieferdatum:
+          type: string
+          format: date
+          example: '2017-02-07'
+        bestellwertBeiLieferung:
+          type: number
+          example: 356.62
+        abrechnungsdatum:
+          type: string
+          format: date
+          example: '2018-12-12'
+        rueckabwicklungen:
+          type: array
+          items:
+            format: date
+            $ref: '#/components/schemas/Rueckabwicklung'
+    Firma:
       type: object
       properties:
-        refundAmount:
-          description: Amount in € ( = widerrufenerBetrag in €)
+        name:
+          type: string
+        status:
+          type: string
+        statusSeit:
+          type: string
+          format: date
+          example: '2017-02-07'
+        adresse:
+          $ref: '#/components/schemas/Adresse'
+        kontakt:
+          $ref: '#/components/schemas/Kontaktdaten'
+    SimpleHaendlerList:
+      type: array
+      items:
+        $ref: '#/components/schemas/SimpleHaendler'
+    SimpleHaendler:
+      type: object
+      properties:
+        partnerkennung:
+          type: string
+          example: 1.de.4145
+        name:
+          type: string
+          example: Musikhaus Korn
+    Webshop:
+      type: object
+      properties:
+        uuid:
+          type: string
+        logoUuid:
+          type: string
+        shopkennung:
+          type: string
+          example: '1.de.4145.1'
+        vertriebsweg:
+          type: string
+          enum:
+            - INTERNET
+            - FILIALE
+            - DIREKTVERTRIEB
+        shopname:
+          type: string
+          example: 'musikhaus'
+        status:
+          type: string
+          enum:
+            - PRODUKTIV
+            - TESTEND
+            - ERSTKONTAKT
+            - GEKUENDIGT
+            - NICHT_WEITERVERFOLGEN
+        branche:
+          type: string
+          example: DIY & Garten
+        adresseFuerUebersicht:
+          type: string
+          example: www.ratenkauf.de
+          description: die Adresse wird für Anzeige zwischen URL oder die Adresse gegen Vertriebskanal ausgewält
+        adresse:
+          $ref: '#/components/schemas/Adresse'
+        auszahlungskonto:
+          $ref: '#/components/schemas/Kontodaten'
+        kontakt:
+          $ref: '#/components/schemas/Kontakt'
+    Rueckabwicklung:
+      type: object
+      properties:
+        eingabedatum:
+          type: string
+          format: date
+          example: '2017-01-01'
+        datum:
+          type: string
+          format: date
+          example: '2017-01-01'
+        buchungsdatum:
+          type: string
+          format: date
+          example: '2017-01-01'
+        eingabezeit:
+          type: string
+          format: date-time
+          example: '2021-07-30T10:18:18.124'
+        betrag:
           type: number
           example: 120.55
-        refundBookingDate:
-          description: ( = buchungsdatum)
+        grund:
+          $ref: '#/components/schemas/Rueckabwicklungsgrund'
+          example: WIDERRUF_VOLLSTAENDIG
+    Rueckabwicklungsgrund:
+      type: string
+      enum:
+        - WIDERRUF_VOLLSTAENDIG
+        - WIDERRUF_TEILWEISE
+        - RUECKGABE_GARANTIE_GEWAEHRLEISTUNG
+        - MINDERUNG_GARANTIE_GEWAEHRLEISTUNG
+    ShopadminResponse:
+      type: object
+      properties:
+        shops:
+          type: array
+          items:
+            $ref: '#/components/schemas/Shop'
+        haendlerkennwortSavedate:
+          type: string
+          format: date-time
+          example: '2018-03-20T09:12:28Z'
+      required:
+        - shops
+        - haendlerkennwortSavedate
+    Shop:
+      type: object
+      properties:
+        kennung:
+          type: string
+          example: '1.de.5003.1'
+        name:
+          type: string
+          example: 'www.triathlon-spezial.de'
+        kennwortActualSavedate:
+          type: string
+          format: date-time
+          example: '2018-03-20T09:12:28Z'
+        testmodus:
+          type: boolean
+          example: true
+      required:
+        - kennung
+        - name
+        - kennwortActualSavedate
+        - testmodus
+    HaendlerkennwortResponse:
+      type: object
+      properties:
+        haendlerkennwortSavedate:
+          type: string
+          format: date-time
+          example: '2018-03-20T09:12:28Z'
+      required:
+        - haendlerkennwortSavedate
+    ShopkennwortResponse:
+      type: object
+      properties:
+        kennwortOldValidUntil:
+          type: string
+          format: date-time
+          example: '2018-03-20T09:12:28Z'
+    TestmodusResponse:
+      type: object
+      properties:
+        aktiv:
+          type: boolean
+          example: true
+        aktivSeit:
+          type: string
+          format: date-time
+          example: '29.06.2021 17:00'
+      required:
+        - aktiv
+    KennwortRequest:
+      type: object
+      properties:
+        kennwort:
+          type: string
+          example: 'test123'
+        schulungsmodus:
+          type: boolean
+          example: true
+      required:
+        - kennwort
+    NewApiTokenRequest:
+      type: object
+      properties:
+        schulungsmodus:
+          type: boolean
+          example: true
+      required:
+        - schulungsmodus
+    NewApiSignatureRequest:
+      type: object
+      properties:
+        schulungsmodus:
+          type: boolean
+          example: true
+      required:
+        - schulungsmodus
+    BodySignatureActive:
+      type: boolean
+      example: true
+    TestmodusRequest:
+      type: object
+      properties:
+        testmodus:
+          type: boolean
+          example: true
+        schulungsmodus:
+          type: boolean
+          example: true
+      required:
+        - testmodus
+    LieferungMeldenRequest:
+      type: object
+      properties:
+        schulungsmodus:
+          type: boolean
+          example: false
+        partnerOderShopkennung:
+          type: string
+          example: '1.de.4145 oder 1.de.4145.1'
+          description: 'Partnerkennung oder Shopkennung'
+    RueckabwicklungMeldenRequest:
+      type: object
+      properties:
+        schulungsmodus:
+          type: boolean
+          example: false
+        betrag:
+          type: number
+          example: 120.55
+        datum:
           type: string
           format: date
           example: '2017-01-01'
-        refundEntryDate:
-          description: ( = eingabedatum)
+        grund:
+          $ref: '#/components/schemas/Rueckabwicklungsgrund'
+        partnerOderShopkennung:
           type: string
-          format: date
-          example: '2017-01-01'
-        refundDate:
-          description: ( = rueckabwicklungsdatum)
+          example: '1.de.4145 oder 1.de.4145.1'
+          description: 'Partnerkennung oder Shopkennung'
+      required:
+        - betrag
+        - datum
+        - grund
+    BestaetigungRequest:
+      type: object
+      properties:
+        schulungsmodus:
+          type: boolean
+          example: false
+    StornierungRequest:
+      type: object
+      properties:
+        schulungsmodus:
+          type: boolean
+          example: false
+    Adressdaten:
+      type: object
+      properties:
+        strasseHausNr:
           type: string
-          format: date
-          example: '2017-01-01'
-        reason:
+        ort:
           type: string
-          description: Reason for refund -> REVOCATION_FULL (WIDERRUF_VOLLSTAENDIG), REVOCATION_PARTIAL (WIDERRUF_TEILWEISE), REFUND_GUARANTEE_WARRANTY (RUECKGABE_GARANTIE_GEWAEHRLEISTUNG), REDUCTION_GUARANTEE_WARRANTY (MINDERUNG_GARANTIE_GEWAEHRLEISTUNG)
-          example: REVOCATION_PARTIAL
+        plz:
+          type: string
+        land:
+          $ref: "#/components/schemas/Land"
+        adresszusatz:
+          type: string
+      required:
+        - strasseHausNr
+        - ort
+        - plz
+        - land
+    Telefondaten:
+      type: object
+      properties:
+        telefonnummer:
+          type: string
+        anschlussart:
+          type: string
           enum:
-            - REVOCATION_FULL
-            - REVOCATION_PARTIAL
-            - REFUND_GUARANTEE_WARRANTY
-            - REDUCTION_GUARANTEE_WARRANTY
+            - MOBIL
+            - FESTNETZ
+          description: >
+            Moegliche Werte - MOBIL      Mobiltelefon -
+            FESTNETZ   Festnetzanschluss
+        land:
+          $ref: "#/components/schemas/Land"
+      required:
+        - telefonnummer
+    Bankdaten:
+      type: object
+      properties:
+        bankname:
+          type: string
+        bankort:
+          type: string
+        iban:
+          type: string
+        bic:
+          type: string
+        kontonummer:
+          type: string
+        blz:
+          type: string
+        land:
+          $ref: "#/components/schemas/Land"
+    Land:
+      type: string
+      description: Land als ISO-Code. z.B. DE
+    ExportRequest:
+      type: object
+      properties:
+        documentType:
+          type: string
+          example: EXCEL
+          enum:
+            - EXCEL
+            - CSV
+        filter:
+          $ref: '#/components/schemas/TransaktionenQuery'
+    ReportRequest:
+      type: object
+      properties:
+        reportType:
+          type: string
+          enum:
+            - TAGESREPORT
+            - CONVERSION_REPORT
+            - FREIGABEREPORT
+        documentType:
+          type: string
+          example: CSV
+          enum:
+            - CSV
+        dateRange:
+          $ref: '#/components/schemas/DatumRangeFilter'
+      required:
+        - reportType
+        - documentType
+        - dateRange
+    ValidiereAdressdatenRequest:
+      type: object
+      properties:
+        adressdaten:
+          $ref: "#/components/schemas/Adressdaten"
+    ValidiereAdressdatenResponse:
+      type: object
+      properties:
+        adressdaten:
+          $ref: "#/components/schemas/Adressdaten"
+        korrigiert:
+          type: boolean
+    ValidiereTelefondatenRequest:
+      type: object
+      properties:
+        telefondaten:
+          $ref: "#/components/schemas/Telefondaten"
+    ValidiereTelefondatenResponse:
+      type: object
+      properties:
+        telefondaten:
+          $ref: "#/components/schemas/Telefondaten"
+        korrigiert:
+          type: boolean
+    ValidiereKontodatenRequest:
+      type: object
+      properties:
+        kontodaten:
+          $ref: "#/components/schemas/Bankdaten"
+    ValidiereKontodatenResponse:
+      type: object
+      properties:
+        kontodaten:
+          $ref: "#/components/schemas/Bankdaten"
+    ApiToken:
+      type: object
+      properties:
+        id:
+          type: integer
+        created:
+          type: string
+          format: date-time
+    ApiSignature:
+      type: object
+      properties:
+        id:
+          type: integer
+        created:
+          type: string
+          format: date-time
+    CallbackUrl:
+      type: object
+      properties:
+        callbackurl:
+          type: string
+          example: 'https://www.ratenkauf.de'
+    NewApiToken:
+      type: object
+      properties:
+        id:
+          type: integer
+        token:
+          type: string
+        created:
+          type: string
+          format: date-time
+    NewApiSignature:
+      type: object
+      properties:
+        id:
+          type: integer
+        signature:
+          type: string
+        created:
+          type: string
+          format: date-time
+    WebshopLogoResponse:
+      type: object
+      properties:
+        logo:
+          type: string
+          format: base64
+        contentType:
+          type: string
+        logoUuid:
+          type: string
+    Adresse:
+      type: object
+      properties:
+        strasseHausNr:
+          type: string
+          example: 'Beuthener Str. 25'
+        zusatz:
+          type: string
+          example: '5. Stock'
+        plz:
+          type: string
+          example: '90471'
+        ort:
+          type: string
+          example: 'Nürnberg'
+        land:
+          type: string
+          example: 'DE'
+    Kontakt:
+      type: object
+      properties:
+        telefon:
+          type: string
+          example: '+49 123 45678'
+        fax:
+          type: string
+          example: '+49 123 45678 11'
+        url:
+          type: string
+          example: 'www.ratenkauf-testshop.de'
+        email:
+          type: string
+          example: 'kontakt@ratenkauf.de'
+    Kontodaten:
+      type: object
+      properties:
+        iban:
+          type: string
+          example: DE11123412348525852500
+        bic:
+          type: string
+          example: COBADEHDXXX
+        kontoinhaber:
+          type: string
+          example: Ralf ratekauf
+    Kontaktdaten:
+      type: object
+      properties:
+        telefonnummer:
+          type: string
+          example: '+4991153900'
+        mobilfunknummer:
+          type: string
+          example: '+4991153900'
+        email:
+          type: string
+          example: 'kontakt@ratenkauf.de'
+        url:
+          type: string
+          example: 'www.ratenkauf.test'
+    Kunde:
+      type: object
+      properties:
+        anrede:
+          type: string
+          example: FRAU
+          enum:
+            - FRAU
+            - HERR
+        vorname:
+          type: string
+          example: max
+        nachname:
+          type: string
+          example: mustermann
+        kundennummer:
+          type: string
+          example: 2810941815
+        geburtsdatum:
+          type: string
+          format: date
+          example: "1900-01-01"
+        adresse:
+          $ref: '#/components/schemas/Adresse'
+        kontaktdaten:
+          $ref: '#/components/schemas/Kontaktdaten'
+    TransaktionstatusFuerHaendler:
+      type: string
+      example: IN_ABRECHNUNG
+      enum:
+        - LIEFERUNG_MELDEN
+        - LIEFERUNG_MELDEN_AUSLAUFEND
+        - IN_ABRECHNUNG
+        - ABGERECHNET
+        - ABGELAUFEN
+        - E_MAIL_ANFRAGE
+        - E_MAIL_ANFRAGE_BESTAETIGT
+        - E_MAIL_ANFRAGE_STORNIERT
+    TransaktionenQuery:
+      type: object
+      properties:
+        limit:
+          type: integer
+          example: 100
+          minimum: 1
+          maximum: 1000
+        ecaOffset:
+          type: integer
+          example: 75
+          minimum: 0
+        rkOffset:
+          type: integer
+          example: 25
+          minimum: 0
+        schulungsmodus:
+          type: boolean
+          example: false
+        sort:
+          $ref: '#/components/schemas/QuerySort'
+        filter:
+          type: object
+          properties:
+            lieferdatum:
+              $ref: '#/components/schemas/DatumRangeFilter'
+            bestellDatum:
+              $ref: '#/components/schemas/DatumRangeFilter'
+            abrechnungsdatum:
+              $ref: '#/components/schemas/DatumRangeFilter'
+            aktuellerBestellwert:
+              $ref: '#/components/schemas/BestellwertRangeFilter'
+            urspruenglicherBestellwert:
+              $ref: '#/components/schemas/BestellwertRangeFilter'
+            kundennummer:
+              type: string
+              example: '50065789465'
+            kreditkontonummer:
+              type: string
+              example: '45844566668'
+            statusFuerHaendler:
+              type: array
+              items:
+                $ref: '#/components/schemas/TransaktionstatusFuerHaendler'
+              uniqueItems: true
+              example: ['LIEFERUNG_MELDEN', 'LIEFERUNG_MELDEN_AUSLAUFEND']
+            vorgangskennung:
+              type: array
+              maxItems: 1000
+              example: [ 'TKGZ67', 'TBKOP']
+              items:
+                type: string
+            vorgangskennungLike:
+              type: string
+              example: 'TKG'
+            shopvorgangskennung:
+              type: array
+              maxItems: 1000
+              example: [ '64873658764785', '657846587468574' ]
+              items:
+                type: string
+            shopvorgangskennungLike:
+              type: string
+              example: '648'
+            kundenName:
+              type: string
+              example: 'Musikhaus Korn'
+              description: 'like ( %s $kundenName %s ) with ignore case '
+            kundenVorname:
+              type: string
+              example: 'Ralf'
+            kundenNachname:
+              type: string
+              example: 'Ratenkauf'
+            geburtsdatum:
+              $ref: '#/components/schemas/Datum'
+            vertriebstellen:
+              type: array
+              maxItems: 1000
+              example: ['1.de.4145.1', '1.de.4145.2']
+              items:
+                type: string
+            partnerOderShopkennung:
+              type: string
+              example: '1.de.4145 oder 1.de.4145.1'
+              description: 'Partnerkennung oder Shopkennung'
+        query:
+          type: string
+          description: 'Freitextsuche für Transaktionen :- Die Suche findet auf den folgenden Feldern statt :- vorgangskennung, shopvorgangskennung, Kunde Vorname und Nachname'
+          example: 'max'
+      required:
+        - limit
+        - ecaOffset
+        - rkOffset
+    DatumRangeFilter:
+      type: object
+      properties:
+        von:
+          $ref: '#/components/schemas/Datum'
+        bis:
+          $ref:  '#/components/schemas/Datum'
+    BestellwertRangeFilter:
+      type: object
+      properties:
+        von:
+          $ref: '#/components/schemas/Bestellwert'
+        bis:
+          $ref:  '#/components/schemas/Bestellwert'
+    Datum:
+      type: string
+      format: date
+      example: '2019-05-05'
+    Bestellwert:
+      type: number
+      example: 225.56
+    QuerySort:
+      type: object
+      properties:
+        field:
+          type: string
+          example: VORGANGSKENNUNG
+          enum:
+            - VORGANGSKENNUNG
+            - SHOP_VORGANGSKENNUNG
+            - KREDITKONTONUMMER
+            - KUNDENNUMMER
+            - WEBSHOP_KENNUNG
+            - LIEFERDATUM
+            - UEBERNAHMEDATUM
+            - BESTELLDATUM
+            - AKTUELLER_BESTELLWERT
+            - URSPRUENGLICHER_BESTELLWERT
+            - NACHNAME
+            - VORNAME
+            - HAENDLER_TRANSAKTIONSSTATUS
+        order:
+          type: string
+          example: ASC
+          enum:
+            - ASC
+            - DESC
     ConstraintViolation:
       type: object
       properties:
@@ -322,131 +1418,342 @@ components:
           type: string
         detail:
           type: string
-    AuthenticationError:
+    ApiError:
       type: object
       properties:
         title:
           type: string
-        detail:
-          type: string
+        messages:
+          type: object
   parameters:
-    transactionId:
-      name: transactionId
+    vorgangskennung:
+      name: vorgangskennung
       in: path
-      description: Unique functional transaction identifier (consists of 6 characters)
+      description: Kennung des Vorgangs
+      example: "TKP123"
       required: true
-      example: "EWZEN7"
       schema:
         type: string
-    firstname:
-      name: firstname
-      in: query
-      example: Ralf
+    vertragspartnerkennungStartsWith:
+      name: vertragspartnerkennungStartsWith
+      in: path
+      description: Erste Zeichen der Kennung des Haendlers
+      example: "1.de.44"
+      required: true
       schema:
         type: string
-    lastname:
-      name: lastname
-      in: query
-      example: Ratenkauf
+    webshopkennung:
+      name: webshopkennung
+      in: path
+      description: Kennung des Webshops
+      example: "1.de.1234.5"
+      required: true
       schema:
         type: string
-    orderId:
-      name: orderId
+    schulungsmodus:
+      name: schulungsmodus
       in: query
-      example: ABCDE
+      description: Schulungsmodus
+      example: true
+      required: true
       schema:
-        type: string
-    pageSize:
-      name: pageSize
-      in: query
-      example: 50
+        type: boolean
+    tokenid:
+      name: id
+      in: path
+      description: ID of a token
+      example: "199451235"
+      required: true
       schema:
         type: integer
-        default: 100
-    page:
-      name: page
-      in: query
-      example: 0
+    signatureid:
+      name: id
+      in: path
+      description: ID of a signature
+      example: "12311231"
+      required: true
       schema:
         type: integer
-    status:
-      name: status
-      in: query
+    logoUuid:
+      name: logoUuid
+      in: path
+      description: Logo-uuid des Webshops
+      example: 67f3527c-a822-4b88-b871-5d0169c53032
+      required: true
       schema:
-        type: array
-        items:
-          type: string
-          enum:
-            - REPORT_CAPTURE
-            - REPORT_CAPTURE_EXPIRING
-            - IN_BILLING
-            - BILLED
-            - EXPIRED
-    minOrderValue:
-      name: minOrderValue
-      in: query
-      schema:
-        type: number
-        example: 200
-    maxOrderValue:
-      name: maxOrderValue
-      in: query
-      schema:
-        type: number
-        example: 9999.99
+        type: string
   requestBodies:
-    RefundRequest:
-      description: Refund Request Object
+    LieferungMeldenRequest:
+      description: Lieferung Melden Request
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/RefundRequest'
+            $ref: '#/components/schemas/LieferungMeldenRequest'
+    RueckabwicklungMeldenRequest:
+      description: Rückabwicklung Melden Request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RueckabwicklungMeldenRequest'
+    BestaetigungRequest:
+      description: Bestaetigung Request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/BestaetigungRequest'
+    StornierungRequest:
+      description: Stornierung Request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/StornierungRequest'
+    TransaktionenQueryRequest:
+      description: Request für Transaktionen-Suche
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TransaktionenQuery'
+    KennwortRequest:
+      description: Kennwort Request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/KennwortRequest'
+    NewApiTokenRequest:
+      description: New API Token Request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NewApiTokenRequest'
+    NewApiSignatureRequest:
+      description: New API Token Request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NewApiSignatureRequest'
+    BodySignatureActiveRequest:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/BodySignatureActive'
+    TestmodusRequest:
+      description: Testmodus Request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TestmodusRequest'
+    ExportRequest:
+      description: Export Request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ExportRequest'
+    ReportRequest:
+      description: Report Request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ReportRequest'
+    UserRequest:
+      description: User Data
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/User'
+    ShopRequest:
+      description: Shop Data
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Webshop'
+    ValidiereAdressdatenRequest:
+      description: Die zu validierenden Adressdaten
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ValidiereAdressdatenRequest"
+    ValidiereTelefondatenRequest:
+      description: Die zu validierenden Telefondaten
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ValidiereTelefondatenRequest"
+    ValidiereKontodatenRequest:
+      description: Die zu validierenden Kontodaten
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ValidiereKontodatenRequest"
+    CallbackUrlRequest:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CallbackUrl'
   responses:
     default:
-      description: Internal server error or error from third party services
+      description: Internal server error
       content:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/ServerError'
-    TransactionResponse:
-      description: Transaction data
+    TransaktionResponse:
+      description: Transaktion Response
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TransaktionResponse'
+    TransaktionenResponse:
+      description: Transaktionen Liste
       content:
         application/hal+json:
           schema:
-            $ref: '#/components/schemas/TransactionResponse'
-    TransactionListResponse:
-      description: Transaction data of more than one transactions
+            $ref: '#/components/schemas/TransaktionenResponse'
+    ShopsResponse:
+      description: Shops Liste
       content:
         application/hal+json:
           schema:
-            $ref: '#/components/schemas/TransactionListInfo'
-    ConstraintViolationError:
-      description: The request is invalid and has one or more constraint violations.
+            $ref: '#/components/schemas/ShopsResponse'
+    UserResponse:
+      description: User Data
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/User'
+    ShopResponse:
+      description: Shop Data
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Webshop'
+    FirmaResponse:
+      description: Firma Data
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Firma'
+    HaendlerSearchResponse:
+      description: Haendlerliste
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SimpleHaendlerList'
+    ShopadminResponse:
+      description: Passwortinfo Händler und Shops
+      content:
+        application/hal+json:
+          schema:
+            $ref: '#/components/schemas/ShopadminResponse'
+    HaendlerkennwortResponse:
+      description: Passwortinfo Händler nach Request
+      content:
+        application/hal+json:
+          schema:
+            $ref: '#/components/schemas/HaendlerkennwortResponse'
+    ShopkennwortResponse:
+      description: Passwortinfo Shop nach Request
+      content:
+        application/hal+json:
+          schema:
+            $ref: '#/components/schemas/ShopkennwortResponse'
+    TestmodusResponse:
+      description: Testmodus Shop nach Request
+      content:
+        application/hal+json:
+          schema:
+            $ref: '#/components/schemas/TestmodusResponse'
+    ValidiereAdressdatenResponse:
+      description: Adresse ist valide
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ValidiereAdressdatenResponse"
+    ValidiereTelefondatenResponse:
+      description: Telefondaten sind valide
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ValidiereTelefondatenResponse"
+    ValidiereKontodatenResponse:
+      description: Kontodaten sind valide
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ValidiereKontodatenResponse"
+    NewApiTokenResponse:
+      description: New API token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NewApiToken'
+    ApiTokenResponse:
+      description: API token
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/ApiToken'
+    NewApiSignatureResponse:
+      description: New API Signature
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NewApiSignature'
+    ApiSignatureResponse:
+      description: API Signature
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/ApiSignature'
+    BodySignatureActiveResponse:
+      description: Signature Active/Inactive State
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/BodySignatureActive'
+    CallbackUrlResponse:
+      description: Callback Url
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CallbackUrl'
+    WebshopLogoResponse:
+      description: The webshop logo was successfully uploaded
+      content:
+        application/hal+json:
+          schema:
+            $ref: "#/components/schemas/WebshopLogoResponse"
+    TooManyRequestsError:
+      description: Too many requests were made
       content:
         application/problem+json:
           schema:
-            $ref: '#/components/schemas/ConstraintViolation'
-    AuthenticationError:
-      description: The request has not been applied because it lacks valid authentication credentials.
-      content:
-        application/problem+json:
-          schema:
-            $ref: '#/components/schemas/AuthenticationError'
-    ForbiddenError:
-      description: The request could not be completed due to permanent denial of access to a resource or entity.
-      content:
-        application/problem+json:
-          schema:
-            $ref: '#/components/schemas/ConstraintViolation'
+            $ref: "#/components/schemas/ConstraintViolation"
     NotFoundError:
-      description: The request could not be completed due to an entity that was not found.
+      description: Entity not found
       content:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/ConstraintViolation'
-    ConflictError:
-      description: The request could not be completed due to a conflict.
+    ConstraintViolationError:
+      description: The request is invalid and has one or more constraint violations
       content:
         application/problem+json:
           schema:
             $ref: '#/components/schemas/ConstraintViolation'
+    ApiError:
+      description: Unauthorized request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+security:
+  - bearerAuth: []
